@@ -2,7 +2,7 @@
 
 Shared system modules with per-machine configuration. The only registered machine is currently `sekai`: Intel Core i5-14600KF, Intel Arc B580, and Wi-Fi networking.
 
-GNOME with GDM provides the desktop and login screen. NetworkManager manages Wi-Fi through GNOME Settings. PipeWire handles audio; GNOME provides keyring, Bluetooth, power settings, and removable-drive integration. Printing is enabled. Applications are limited to Firefox, Files, Console, Text Editor, an image viewer, a PDF viewer, Archive Manager, Disks, and Passwords and Keys. Dash to Dock and Extension Manager are included. Shared command-line tools include `dig`, `host`, `nslookup`, `mtr`, Ansible, OpenSSH (`ssh`, `scp`, `sftp`, `ssh-keygen`), Git, curl, wget, jq, rsync, traceroute, tcpdump, iproute2 (`ip`, `ss`), fastfetch, btop, and smartmontools (`smartctl`). The SSH client is installed; incoming SSH access is not enabled.
+GNOME with GDM provides the desktop and login screen. NetworkManager manages Wi-Fi through GNOME Settings. PipeWire handles audio; GNOME provides keyring, Bluetooth, power settings, and removable-drive integration. Printing is enabled. Desktop applications include Vivaldi with `vivaldi-ffmpeg-codecs`, Vesktop (Vencord), Deezer Enhanced (an unofficial Linux client), Proton Pass, Steam, VSCodium, Files, Console, Text Editor, an image viewer, a PDF viewer, Archive Manager, Disks, and Passwords and Keys. Vivaldi is the default browser; Firefox is not installed. Dash to Dock and Extension Manager are included. Shared command-line tools include `dig`, `host`, `nslookup`, `mtr`, Ansible, OpenSSH (`ssh`, `scp`, `sftp`, `ssh-keygen`), Git, curl, wget, jq, rsync, traceroute, tcpdump, iproute2 (`ip`, `ss`), fastfetch, btop, and smartmontools (`smartctl`). The SSH client is installed; incoming SSH access is not enabled.
 
 The configuration uses a recent Linux kernel, Mesa, Intel media support and redistributable firmware. The exact Wi-Fi adapter was not specified; adapters requiring drivers outside the kernel may need additional configuration. Connect the monitor to the B580: the KF CPU has no integrated graphics.
 
@@ -69,6 +69,8 @@ Keep `system.stateVersion` at `26.05` after installation; it controls compatibil
 
 ## Shared packages and GNOME extensions
 
+Edit `modules/desktop/apps.nix` for shared desktop applications. This module permits the unfree packages required by Vivaldi and Steam. Steam’s NixOS integration enables 32-bit graphics and audio compatibility; PipeWire with WirePlumber remains the audio server. Vivaldi’s codec package is integrated through its `proprietaryCodecs` override.
+
 Add command-line packages to `environment.systemPackages` in `modules/global/packages.nix`. Every host registered through `mkHost` automatically imports this module. Mtr uses `programs.mtr.enable` in the same file so its network-probing permissions are configured properly.
 
 Add GNOME extensions to the `extensions` list in `modules/desktop/extensions.nix`, using package names from `pkgs.gnomeExtensions`. The list supplies both installed packages and extension IDs enabled by default. Dash to Dock is already included. Extensions must support the GNOME version in the pinned Nixpkgs release.
@@ -94,6 +96,7 @@ For future rebuilds on that device, use `sudo nixos-rebuild switch --flake path:
 | `modules/global/packages.nix` | Global command-line tools |
 | `modules/global/system.nix` | NetworkManager, locale, user, zram, TPM policy |
 | `modules/desktop/gnome.nix` | Optional GNOME/GDM profile, apps, PipeWire, Bluetooth, printing |
+| `modules/desktop/apps.nix` | Shared desktop apps, Vivaldi browser defaults, Steam integration |
 | `modules/desktop/extensions.nix` | GNOME extensions and default enablement |
 | `hosts/sekai/default.nix` | Desktop profile selection, Intel hardware, bootloader, state version |
 | `hosts/sekai/settings.nix` | Disk, login name, locale, keyboard, timezone |
