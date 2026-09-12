@@ -137,29 +137,37 @@ For future rebuilds on that device, use `sudo nixos-rebuild switch --flake path:
 
 References: [NixOS GNOME documentation](https://nixos.org/manual/nixos/stable/#sec-gnome), [NixOS dconf module](https://github.com/NixOS/nixpkgs/blob/nixos-unstable/nixos/modules/programs/dconf.nix), and [Disko LUKS/LVM example](https://github.com/nix-community/disko/blob/master/example/luks-lvm.nix).
 
-## ROG Azoth keyboard workaround
+## ROG Azoth device-property fix
 
-The supplied boot log shows the Azoth receiver (`0b05:1a85`) reporting a malformed
-serial at startup and a clean serial after replugging. This matches
-[the upstream systemd device issue](https://github.com/systemd/systemd/issues/41296).
-`hosts/sekai/keyboard.nix` finds the receiver by USB ID `0b05:1a85`, derives
-its current parent hub and port, and power-cycles that port after disk unlock
-and before GDM. `uhubctl` handles any USB3 companion hub automatically.
-The earlier USB authorization toggle did not fix the issue. The replacement
-waits for the receiver to return with a clean serial. Moving the receiver does
-not require changing the configuration, but its new hub must support per-port
-power switching. Unsupported hubs are not forced, and multiple matching receivers
-cause the service to refuse an ambiguous reset. No systemd or kernel
-recompilation is required. This workaround still needs a cold-boot hardware test.
-It does not run inside the initrd or reconnect the keyboard in an active desktop.
+The receiver can report a malformed serial at cold boot. Systemd 260.2 rejects
+invalid properties while parsing device events, matching the attached logs and
+[upstream issue #41296](https://github.com/systemd/systemd/issues/41296).
+The USB authorization and port power-cycle workarounds did not resolve this.
+They have been removed.
 
-After applying the configuration with `sudo nixos-rebuild boot --flake path:/etc/nixos#sekai`,
-reboot with the receiver connected and verify typing at both disk unlock and GDM.
-Do not run the partitioning installer to apply these changes. For diagnostics:
+`hosts/sekai/keyboard.nix` backports
+[upstream fix #43489](https://github.com/systemd/systemd/pull/43489), including
+its regression tests, into the stable systemd package and inherited library
+variants. Invalid ordinary properties are ignored; required/typed properties
+remain validated. The patch is stored in `hosts/sekai/patches/` and requires no
+unstable input. It skips application if the exact fix is already present, and
+fails the build if a future source change requires backport review.
+
+This rebuilds systemd and can rebuild packages depending on its libraries.
+Patch application was checked against upstream 260.2; a full NixOS build and
+cold-boot test on sekai are still required. Keep the generated hardware
+configuration from the installed machine when applying repository updates.
 
 ```bash
-journalctl -b -u azoth-reconnect.service
-journalctl -b -u systemd-udevd.service -u systemd-logind.service
+sudo nixos-rebuild boot --flake path:/etc/nixos#sekai
+sudo reboot
+```
+
+Verify typing at both disk unlock and GDM without replugging. Do not rerun the
+partitioning installer. If it fails, collect the journal before replugging:
+
+```bash
+journalctl -b -u systemd-udevd.service -u systemd-logind.service -u display-manager.service
 ```
 
 Check Firefox with an H.264/AAC video and your usual streaming service;

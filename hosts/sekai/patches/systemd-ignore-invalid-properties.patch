@@ -1,0 +1,144 @@
+From de22b51908d976f02153048a65f983bcedded5f8 Mon Sep 17 00:00:00 2001
+From: Jakub Stasiak <jakub@stasiak.at>
+Date: Sat, 22 Aug 2026 17:18:24 +0000
+Subject: [PATCH] sd-device: ignore invalid ordinary properties
+
+I had a situation where Dell Wyse 3040 with SK Hynix eMMC stopped booting
+after upgrading from Fedora 42 to Fedora 44 with systemd 259.8.
+
+The card reports a product name containing byte 0x92, but the kernel event
+also contains the valid module alias needed to load mmc_block:
+
+    MMC_NAME=H8G4a\222
+    MODALIAS=mmc:block
+
+I inserted the mmc_block kernel module manually and booted successfully.
+Then after enabling udevd debug logging and retriggering the MMC add event
+via
+
+    udevadm control -l debug
+    udevadm trigger -v -c add -s mmc
+    udevadm settle
+
+I saw the failure in the "journalctl -b -u systemd-udevd.service"
+output:
+
+    mmc0:0001: sd-device: Refusing invalid property: MMC_NAME=H8G4a\222
+    mmc0:0001: sd-device: Failed to add property 'MMC_NAME=H8G4a<92>': Invalid argument
+    sd-device-monitor(manager): Failed to create device from received message: Invalid argument
+
+Since PR 41001, strict property validation returns EINVAL for the bad
+MMC_NAME. device_new_from_nulstr() propagated that error and discarded
+the whole event, so udev never processed MODALIAS and did not load
+mmc_block.
+
+Skip ordinary properties whose keys or values fail validation. Do not store
+them, but continue processing the remaining properties. Required and typed
+properties are handled separately and remain fatal when invalid, as do
+malformed records and all other errors.
+
+Closes: https://github.com/systemd/systemd/issues/42930
+Related: https://github.com/systemd/systemd/issues/41339
+Related: https://github.com/systemd/systemd/issues/43008
+Similar: https://github.com/systemd/systemd/pull/42316
+Similar: https://github.com/systemd/systemd/pull/43061
+Regression: https://github.com/systemd/systemd/pull/41001
+---
+ src/libsystemd/sd-device/device-private.c |  9 ++++
+ src/libsystemd/sd-device/test-sd-device.c | 56 +++++++++++++++++++++++
+ 2 files changed, 65 insertions(+)
+
+diff --git a/src/libsystemd/sd-device/device-private.c b/src/libsystemd/sd-device/device-private.c
+index 48dce7768949..a5638645c61f 100644
+--- a/src/libsystemd/sd-device/device-private.c
++++ b/src/libsystemd/sd-device/device-private.c
+@@ -11,6 +11,7 @@
+ #include "device-private.h"
+ #include "device-util.h"
+ #include "errno-util.h"
++#include "escape.h"
+ #include "extract-word.h"
+ #include "fd-util.h"
+ #include "fileio.h"
+@@ -377,6 +378,14 @@ static int device_amend(sd_device *device, const char *key, const char *value) {
+                         return log_device_debug_errno(device, r, "sd-device: Failed to parse udev database version '%s': %m", value);
+         } else {
+                 r = device_add_property_internal(device, key, value);
++                if (r == -EINVAL) {
++                        _cleanup_free_ char *escaped_key = cescape(key), *escaped_value = cescape(value);
++
++                        log_device_debug_errno(device, r,
++                                               "sd-device: Failed to add property '%s=%s', ignoring: %m",
++                                               strnull(escaped_key), strnull(escaped_value));
++                        return 0;
++                }
+                 if (r < 0)
+                         return log_device_debug_errno(device, r, "sd-device: Failed to add property '%s=%s': %m", key, value);
+         }
+diff --git a/src/libsystemd/sd-device/test-sd-device.c b/src/libsystemd/sd-device/test-sd-device.c
+index c53f0b0e88d6..dde2bc9c8689 100644
+--- a/src/libsystemd/sd-device/test-sd-device.c
++++ b/src/libsystemd/sd-device/test-sd-device.c
+@@ -807,6 +807,62 @@ TEST(sd_device_new_from_nulstr) {
+         }
+ }
+ 
++TEST(sd_device_new_from_nulstr_invalid_property) {
++        char nulstr[] =
++                "ACTION=add\0"
++                "DEVPATH=/devices/pci0000:00/80860F14:00/mmc_host/mmc0/mmc0:0001\0"
++                "SUBSYSTEM=mmc\0"
++                "MMC_NAME=H8G4a\x92\0"
++                "MODALIAS=mmc:block\0"
++                "SEQNUM=1\0";
++        _cleanup_(sd_device_unrefp) sd_device *device = NULL;
++        const char *value;
++
++        ASSERT_OK(device_new_from_nulstr(&device, nulstr, sizeof(nulstr) - 1));
++        ASSERT_ERROR(sd_device_get_property_value(device, "MMC_NAME", &value), ENOENT);
++        ASSERT_OK(sd_device_get_property_value(device, "MODALIAS", &value));
++        ASSERT_STREQ(value, "mmc:block");
++}
++
++TEST(sd_device_new_from_nulstr_invalid_property_key) {
++        char nulstr[] =
++                "ACTION=add\0"
++                "DEVPATH=/devices/pci0000:00/80860F14:00/mmc_host/mmc0/mmc0:0001\0"
++                "SUBSYSTEM=mmc\0"
++                "INVALID-KEY=value\0"
++                "SEQNUM=1\0";
++        _cleanup_(sd_device_unrefp) sd_device *device = NULL;
++        const char *value;
++
++        ASSERT_OK(device_new_from_nulstr(&device, nulstr, sizeof(nulstr) - 1));
++        ASSERT_ERROR(sd_device_get_property_value(device, "INVALID-KEY", &value), ENOENT);
++}
++
++TEST(sd_device_new_from_nulstr_invalid_required_property) {
++        char nulstr[] =
++                "ACTION=invalid\0"
++                "DEVPATH=/devices/pci0000:00/80860F14:00/mmc_host/mmc0/mmc0:0001\0"
++                "SUBSYSTEM=mmc\0"
++                "MODALIAS=mmc:block\0"
++                "SEQNUM=1\0";
++        _cleanup_(sd_device_unrefp) sd_device *device = NULL;
++
++        ASSERT_ERROR(device_new_from_nulstr(&device, nulstr, sizeof(nulstr) - 1), EINVAL);
++}
++
++TEST(sd_device_new_from_nulstr_invalid_typed_property) {
++        char nulstr[] =
++                "ACTION=add\0"
++                "DEVPATH=/devices/pci0000:00/80860F14:00/mmc_host/mmc0/mmc0:0001\0"
++                "SUBSYSTEM=mmc\0"
++                "IFINDEX=invalid\0"
++                "MODALIAS=mmc:block\0"
++                "SEQNUM=1\0";
++        _cleanup_(sd_device_unrefp) sd_device *device = NULL;
++
++        ASSERT_ERROR(device_new_from_nulstr(&device, nulstr, sizeof(nulstr) - 1), EINVAL);
++}
++
+ TEST(sd_device_new_from_path) {
+         _cleanup_(sd_device_enumerator_unrefp) sd_device_enumerator *e = NULL;
+         _cleanup_(rm_rf_physical_and_freep) char *tmpdir = NULL;
