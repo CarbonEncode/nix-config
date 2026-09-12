@@ -15,7 +15,7 @@ UEFI boot is required. Installation erases the selected whole disk.
 | Layer | Layout |
 | --- | --- |
 | GPT partition 1 | 2048 MiB FAT32 EFI system partition mounted at `/boot` |
-| GPT partition 2 | Remaining space, password-unlocked LUKS |
+| GPT partition 2 | Remaining space, password-unlocked LUKS mapping `cryptlvm` |
 | Inside LUKS | LVM volume group `vg00` |
 | Inside LVM | 200 GiB ext4 logical volume `root`, mounted at `/` |
 | Inside LVM | Ext4 logical volume `home`, using all remaining space, mounted at `/home` |
@@ -27,6 +27,8 @@ The logical volumes are `/dev/vg00/root` and `/dev/vg00/home`. The target disk m
 `/nix` lives on the root filesystem, while `/home` has its own logical volume inside the same encrypted container. The EFI partition is unencrypted. There is no TPM unlocking, keyfile, disk swap, or hibernation setup. Compressed RAM swap (zram) is enabled.
 
 Disk swap is explicitly disabled, and Bluetooth is enabled and powered on at boot. PipeWire with WirePlumber manages audio, including Bluetooth audio devices paired through GNOME Settings. TPM support is disabled; unlocking the encrypted disk requires your passphrase each time.
+
+Networking uses the `fq` queueing discipline with BBR TCP congestion control on every configured host.
 
 ## Install
 

@@ -4,6 +4,12 @@
   networking.firewall.enable = true;
   hardware.enableRedistributableFirmware = true;
 
+  boot.kernelModules = [ "tcp_bbr" ];
+  boot.kernel.sysctl = {
+    "net.core.default_qdisc" = "fq";
+    "net.ipv4.tcp_congestion_control" = "bbr";
+  };
+
   time.timeZone = hostSettings.timeZone;
   i18n.defaultLocale = hostSettings.locale;
   services.xserver.xkb.layout = hostSettings.keyboardLayout;

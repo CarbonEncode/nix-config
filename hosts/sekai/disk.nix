@@ -24,7 +24,7 @@ in
             size = "100%";
             content = {
               type = "luks";
-              name = "cryptroot";
+              name = "cryptlvm";
               # Disko prompts for a passphrase. No keyfile or TPM enrollment.
               passwordFile = null;
               askPassword = true;
