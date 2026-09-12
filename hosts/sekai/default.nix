@@ -3,6 +3,7 @@
   imports = [
     ./hardware-configuration.nix
     ./disk.nix
+    ./keyboard.nix
     ../../modules/desktop/gnome.nix
   ];
 

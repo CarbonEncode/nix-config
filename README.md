@@ -2,7 +2,7 @@
 
 Shared system modules with per-machine configuration. The only registered machine is currently `sekai`: Intel Core i5-14600KF, Intel Arc B580, and Wi-Fi networking.
 
-GNOME with GDM provides the desktop and login screen. NetworkManager manages Wi-Fi through GNOME Settings. PipeWire handles audio; GNOME provides keyring, Bluetooth, power settings, and removable-drive integration. Plymouth provides the graphical boot and encrypted-disk password prompt. Printing is disabled. Desktop applications include Vivaldi with `vivaldi-ffmpeg-codecs`, Vesktop (Vencord), Deezer Desktop (the unofficial aunetx Linux port), Proton Pass, Steam, VSCodium, VLC, MPV, Files, Console, Text Editor, an image viewer, a PDF viewer, Archive Manager, Disks, and Passwords and Keys. Vivaldi is the default browser; Firefox is not installed. Dash to Dock, Blur my Shell, Apps Menu, and Extension Manager are included. Shared command-line tools include `dig`, `host`, `nslookup`, `mtr`, Ansible, OpenSSH (`ssh`, `scp`, `sftp`, `ssh-keygen`), Git, curl, wget, jq, rsync, traceroute, tcpdump, iproute2 (`ip`, `ss`), fastfetch, btop, smartmontools (`smartctl`), lm_sensors (`sensors`), usbutils (`lsusb`), pciutils (`lspci`), unzip, and ncdu. The SSH client is installed; incoming SSH access is not enabled.
+GNOME with GDM provides the desktop and login screen. NetworkManager manages Wi-Fi through GNOME Settings. PipeWire handles audio; GNOME provides keyring, Bluetooth, power settings, and removable-drive integration. Plymouth provides the graphical boot and encrypted-disk password prompt. Printing is disabled. Desktop applications include Firefox, Vesktop (Vencord), Deezer Desktop (the unofficial aunetx Linux port), Proton Pass, Steam, VSCodium, VLC, MPV, Files, Console, Text Editor, an image viewer, a PDF viewer, Archive Manager, Disks, and Passwords and Keys. Firefox is the default browser; Vivaldi and its codec override are removed. Dash to Dock, Blur my Shell, Apps Menu, and Extension Manager are included. Shared command-line tools include `dig`, `host`, `nslookup`, `mtr`, Ansible, OpenSSH (`ssh`, `scp`, `sftp`, `ssh-keygen`), Git, curl, wget, jq, rsync, traceroute, tcpdump, iproute2 (`ip`, `ss`), fastfetch, btop, smartmontools (`smartctl`), lm_sensors (`sensors`), usbutils (`lsusb`), pciutils (`lspci`), unzip, and ncdu. The SSH client is installed; incoming SSH access is not enabled.
 
 GNOME defaults to the bundled wallpaper, dark appearance, and minimize/maximize/close window buttons. These defaults remain editable by each user in GNOME Settings or dconf.
 
@@ -98,7 +98,7 @@ make the stable migration fully pinned and validated.
 
 ## Shared packages and GNOME extensions
 
-Edit `modules/desktop/apps.nix` for shared desktop applications. This module permits the unfree packages required by Vivaldi and Steam. Steam’s NixOS integration enables 32-bit graphics and audio compatibility; PipeWire with WirePlumber remains the audio server. Vivaldi’s codec package is integrated through its `proprietaryCodecs` override.
+Edit `modules/desktop/apps.nix` for shared desktop applications. This module permits the unfree packages required by Steam and other proprietary applications. Steam’s NixOS integration enables 32-bit graphics and audio compatibility; PipeWire with WirePlumber remains the audio server. Firefox uses the stable Nixpkgs wrapper with matching FFmpeg libraries for common media formats. DRM playback is enabled by default; Firefox downloads Widevine when needed, requiring network access. Existing per-user browser defaults can be changed in GNOME Settings.
 
 Add command-line packages to `environment.systemPackages` in `modules/global/packages.nix`. Every host registered through `mkHost` automatically imports this module. Mtr uses `programs.mtr.enable` in the same file so its network-probing permissions are configured properly.
 
@@ -127,7 +127,7 @@ For future rebuilds on that device, use `sudo nixos-rebuild switch --flake path:
 | `modules/desktop/gnome.nix` | Optional GNOME/GDM profile, apps, PipeWire, Bluetooth |
 | `modules/desktop/appearance.nix` | Wallpaper, dark appearance, and window-button defaults |
 | `modules/desktop/assets/default-wallpaper.jpg` | Bundled default wallpaper |
-| `modules/desktop/apps.nix` | Shared desktop apps, Vivaldi browser defaults, Steam integration |
+| `modules/desktop/apps.nix` | Shared desktop apps, Firefox browser defaults, Steam integration |
 | `modules/desktop/extensions.nix` | GNOME extensions and default enablement |
 | `hosts/sekai/default.nix` | Desktop profile selection, Intel hardware, bootloader, Plymouth, state version |
 | `hosts/sekai/settings.nix` | Disk, login name, locale, keyboard, timezone |
@@ -136,3 +136,25 @@ For future rebuilds on that device, use `sudo nixos-rebuild switch --flake path:
 | `install.sh` | Interactive installation of a selected host |
 
 References: [NixOS GNOME documentation](https://nixos.org/manual/nixos/stable/#sec-gnome), [NixOS dconf module](https://github.com/NixOS/nixpkgs/blob/nixos-unstable/nixos/modules/programs/dconf.nix), and [Disko LUKS/LVM example](https://github.com/nix-community/disko/blob/master/example/luks-lvm.nix).
+
+## ROG Azoth keyboard workaround
+
+The supplied boot log shows the Azoth receiver (`0b05:1a85`) reporting a malformed
+serial at startup and a clean serial after replugging. This matches
+[the upstream systemd device issue](https://github.com/systemd/systemd/issues/41296).
+`hosts/sekai/keyboard.nix` reauthorizes only that receiver once after disk unlock
+and before GDM, causing its interfaces to be reprobed. No systemd or kernel
+recompilation is required. This workaround still needs a cold-boot hardware test.
+It does not run inside the initrd or reconnect the keyboard in an active desktop.
+
+After applying the configuration with `sudo nixos-rebuild boot --flake path:/etc/nixos#sekai`,
+reboot with the receiver connected and verify typing at both disk unlock and GDM.
+Do not run the partitioning installer to apply these changes. For diagnostics:
+
+```bash
+journalctl -b -u azoth-reconnect.service
+journalctl -b -u systemd-udevd.service -u systemd-logind.service
+```
+
+Check Firefox with an H.264/AAC video and your usual streaming service;
+`about:support` shows graphics and media-decoding status.
