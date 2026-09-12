@@ -3,6 +3,8 @@ let
   # Add extensions here; the same list installs and enables them by default.
   extensions = with pkgs.gnomeExtensions; [
     dash-to-dock
+    blur-my-shell
+    apps-menu
   ];
 in
 {
