@@ -14,6 +14,7 @@
     })
     vscodium
     vlc
+    mpv
   ];
 
   # Includes 32-bit graphics, PipeWire ALSA compatibility, and controller rules.
