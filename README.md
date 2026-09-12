@@ -12,10 +12,14 @@ UEFI boot is required. Installation erases the selected whole disk.
 
 | Layer | Layout |
 | --- | --- |
-| GPT partition 1 | 1 GiB FAT32 EFI system partition mounted at `/boot` |
+| GPT partition 1 | 2048 MiB FAT32 EFI system partition mounted at `/boot` |
 | GPT partition 2 | Remaining space, password-unlocked LUKS |
-| Inside LUKS | LVM volume group `sekai` |
+| Inside LUKS | LVM volume group `vg00` |
 | Inside LVM | One logical volume `root`, using all free space, ext4 mounted at `/` |
+
+The 2048 MiB EFI size applies to fresh partitioning. A normal rebuild does not resize an existing `/boot`; do not rerun the destructive installer to apply this change.
+
+The root logical volume is `/dev/vg00/root`. An existing installation using volume group `sekai` must keep its old disk configuration until the actual volume group and boot configuration are migrated together. Applying the `vg00` configuration alone would make the next boot look for a nonexistent root volume.
 
 `/home` and `/nix` live on the root filesystem. The EFI partition is unencrypted. There is no TPM unlocking, keyfile, separate home encryption, disk swap, or hibernation setup. Compressed RAM swap (zram) is enabled.
 

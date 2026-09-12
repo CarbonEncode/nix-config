@@ -11,7 +11,7 @@ in
         type = "gpt";
         partitions = {
           ESP = {
-            size = "1G";
+            size = "2048M";
             type = "EF00";
             content = {
               type = "filesystem";
@@ -30,14 +30,14 @@ in
               askPassword = true;
               content = {
                 type = "lvm_pv";
-                vg = "sekai";
+                vg = "vg00";
               };
             };
           };
         };
       };
     };
-    lvm_vg.sekai = {
+    lvm_vg.vg00 = {
       type = "lvm_vg";
       lvs.root = {
         size = "100%FREE";
