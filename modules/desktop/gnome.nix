@@ -38,7 +38,7 @@
     pulse.enable = true;
     wireplumber.enable = true;
   };
-  services.printing.enable = true;
+  services.printing.enable = false;
   services.avahi.nssmdns4 = true;
   fonts.enableDefaultPackages = true;
 }
