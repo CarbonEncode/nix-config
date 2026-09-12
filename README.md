@@ -32,7 +32,7 @@ Disk swap is explicitly disabled, and Bluetooth is enabled and powered on at boo
 
 1. Boot a recent **x86_64 NixOS graphical ISO in UEFI mode**. Disable Secure Boot; this configuration uses ordinary systemd-boot without Secure Boot enrollment.
 2. Connect Wi-Fi using the live desktop. Copy this project to a writable directory on the live system, such as `/tmp/nix-config`, and open a terminal there.
-3. Review `hosts/sekai/settings.nix`. The login name is `prime`; defaults are Stockholm time, English language, and a Swedish keyboard. Set the live environment keyboard to match before entering passwords.
+3. Review `hosts/sekai/settings.nix`. The login name is `prime`; defaults are Stockholm time, US English (`en_US.UTF-8`), and a Swedish keyboard. Set the live environment keyboard to match before entering passwords.
 4. Run:
 
    ```bash
