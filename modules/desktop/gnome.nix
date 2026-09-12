@@ -13,6 +13,7 @@
   services.gnome.gnome-remote-desktop.enable = false;
   services.gnome.gnome-user-share.enable = false;
   services.gnome.rygel.enable = false;
+  environment.gnome.excludePackages = [ pkgs.gnome-tour ];
 
   # Keep the normal GNOME settings, keyring, portals and removable-drive
   # integration, with a small selection of everyday applications.

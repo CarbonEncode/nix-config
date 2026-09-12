@@ -142,8 +142,14 @@ References: [NixOS GNOME documentation](https://nixos.org/manual/nixos/stable/#s
 The supplied boot log shows the Azoth receiver (`0b05:1a85`) reporting a malformed
 serial at startup and a clean serial after replugging. This matches
 [the upstream systemd device issue](https://github.com/systemd/systemd/issues/41296).
-`hosts/sekai/keyboard.nix` reauthorizes only that receiver once after disk unlock
-and before GDM, causing its interfaces to be reprobed. No systemd or kernel
+`hosts/sekai/keyboard.nix` finds the receiver by USB ID `0b05:1a85`, derives
+its current parent hub and port, and power-cycles that port after disk unlock
+and before GDM. `uhubctl` handles any USB3 companion hub automatically.
+The earlier USB authorization toggle did not fix the issue. The replacement
+waits for the receiver to return with a clean serial. Moving the receiver does
+not require changing the configuration, but its new hub must support per-port
+power switching. Unsupported hubs are not forced, and multiple matching receivers
+cause the service to refuse an ambiguous reset. No systemd or kernel
 recompilation is required. This workaround still needs a cold-boot hardware test.
 It does not run inside the initrd or reconnect the keyboard in an active desktop.
 
