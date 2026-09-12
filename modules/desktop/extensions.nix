@@ -4,7 +4,7 @@ let
   extensions = with pkgs.gnomeExtensions; [
     dash-to-dock
     blur-my-shell
-    apps-menu
+    applications-menu
   ];
 in
 {
