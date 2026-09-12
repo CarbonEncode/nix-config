@@ -19,6 +19,7 @@
     lm_sensors # sensors
     usbutils # lsusb
     pciutils # lspci
+    util-linux # fdisk, cfdisk, lsblk, blkid
     unzip
     ncdu
   ];
