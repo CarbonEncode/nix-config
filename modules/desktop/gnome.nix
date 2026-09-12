@@ -4,6 +4,8 @@
   imports = [ ./extensions.nix ./appearance.nix ./apps.nix ];
 
   services.desktopManager.gnome.enable = true;
+  # GNOME Shell provides Print Screen screenshots and screen recording;
+  # disabling optional core apps below does not remove this capture tool.
   services.displayManager.gdm.enable = true;
   services.gnome.core-apps.enable = false;
   services.gnome.games.enable = false;

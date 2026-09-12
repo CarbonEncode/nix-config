@@ -6,6 +6,12 @@ GNOME with GDM provides the desktop and login screen. NetworkManager manages Wi-
 
 GNOME defaults to the bundled wallpaper, dark appearance, and minimize/maximize/close window buttons. These defaults remain editable by each user in GNOME Settings or dconf.
 
+GNOME Shell includes the recommended screenshot and screen-recording tool even
+with the minimal core-app selection. Press **Print Screen** to capture a region,
+window, or screen; switch to video mode to record a region or screen. Screenshots
+are saved in `~/Pictures/Screenshots`, and recordings in `~/Videos/Screencasts`.
+See the [GNOME capture guide](https://help.gnome.org/gnome-help/screen-shot-record.html).
+
 The configuration uses a recent Linux kernel, Mesa, Intel media support and redistributable firmware. The exact Wi-Fi adapter was not specified; adapters requiring drivers outside the kernel may need additional configuration. Connect the monitor to the B580: the KF CPU has no integrated graphics.
 
 ## Disk layout
@@ -66,11 +72,29 @@ To intentionally update the pinned dependencies:
 
 ```bash
 cd /etc/nixos
-sudo nix flake update
+sudo nix flake update nixpkgs
 sudo nixos-rebuild switch --flake path:/etc/nixos#sekai
 ```
 
 Keep `system.stateVersion` at `26.05` after installation; it controls compatibility defaults and is not the package update channel.
+The package channel is pinned to the `nixos-26.05` stable branch in `flake.nix`.
+The installer refreshes that branch before building, and the configuration
+refuses to evaluate against a different NixOS release.
+When a newer stable release is published, update the branch in `flake.nix` and
+the release assertion in `modules/global/system.nix`, refresh the lock, and
+validate the configuration before upgrading. Never select an unstable branch.
+Keep the existing machine's `system.stateVersion` unchanged during upgrades.
+
+The stable migration's lock file still needs regeneration on a machine with Nix:
+
+```bash
+nix flake update nixpkgs
+nix flake check --no-build --all-systems
+```
+
+Commit the regenerated `flake.lock` after a successful check. The installer also
+refreshes the lock before building, but the repository lock must be updated to
+make the stable migration fully pinned and validated.
 
 ## Shared packages and GNOME extensions
 

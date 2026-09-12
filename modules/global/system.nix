@@ -1,5 +1,12 @@
-{ lib, hostSettings, ... }:
+{ config, lib, hostSettings, ... }:
 {
+  assertions = [
+    {
+      assertion = config.system.nixos.release == "26.05";
+      message = "This configuration must use the NixOS 26.05 stable branch.";
+    }
+  ];
+
   networking.networkmanager.enable = true;
   networking.firewall.enable = true;
   hardware.enableRedistributableFirmware = true;

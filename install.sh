@@ -27,6 +27,11 @@ export NIX_CONFIG="${NIX_CONFIG:-}
 experimental-features = nix-command flakes"
 FLAKE_REF="path:$PWD#$TARGET_HOST"
 CONFIG_REF="path:$PWD#nixosConfigurations.$TARGET_HOST"
+# Refresh only nixpkgs within the 26.05 stable branch before evaluating. This
+# keeps new installations on current security and bug-fix revisions without
+# ever advancing to the 26.11 development branch.
+nix flake lock --update-input nixpkgs
+
 # Verify the flake entry exists before asking for disk details.
 nix eval --raw "$CONFIG_REF.config.networking.hostName" >/dev/null
 INSTALL_USERNAME=$(nix eval --raw --file "hosts/$TARGET_HOST/settings.nix" username)
