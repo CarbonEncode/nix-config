@@ -12,6 +12,7 @@
       vivaldi-ffmpeg-codecs = pkgs.vivaldi-ffmpeg-codecs;
     })
     vscodium
+    vlc
   ];
 
   # Includes 32-bit graphics, PipeWire ALSA compatibility, and controller rules.

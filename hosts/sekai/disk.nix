@@ -39,12 +39,22 @@ in
     };
     lvm_vg.vg00 = {
       type = "lvm_vg";
-      lvs.root = {
-        size = "100%FREE";
-        content = {
-          type = "filesystem";
-          format = "ext4";
-          mountpoint = "/";
+      lvs = {
+        root = {
+          size = "200G";
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/";
+          };
+        };
+        home = {
+          size = "100%FREE";
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/home";
+          };
         };
       };
     };

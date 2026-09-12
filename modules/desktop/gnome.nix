@@ -1,7 +1,7 @@
 # Reusable desktop profile: import this on machines that should run GNOME.
 { pkgs, ... }:
 {
-  imports = [ ./extensions.nix ./apps.nix ];
+  imports = [ ./extensions.nix ./appearance.nix ./apps.nix ];
 
   services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;

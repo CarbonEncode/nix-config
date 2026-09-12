@@ -2,7 +2,9 @@
 
 Shared system modules with per-machine configuration. The only registered machine is currently `sekai`: Intel Core i5-14600KF, Intel Arc B580, and Wi-Fi networking.
 
-GNOME with GDM provides the desktop and login screen. NetworkManager manages Wi-Fi through GNOME Settings. PipeWire handles audio; GNOME provides keyring, Bluetooth, power settings, and removable-drive integration. Printing is disabled. Desktop applications include Vivaldi with `vivaldi-ffmpeg-codecs`, Vesktop (Vencord), Proton Pass, Steam, VSCodium, Files, Console, Text Editor, an image viewer, a PDF viewer, Archive Manager, Disks, and Passwords and Keys. Vivaldi is the default browser; Firefox is not installed. Dash to Dock and Extension Manager are included. Shared command-line tools include `dig`, `host`, `nslookup`, `mtr`, Ansible, OpenSSH (`ssh`, `scp`, `sftp`, `ssh-keygen`), Git, curl, wget, jq, rsync, traceroute, tcpdump, iproute2 (`ip`, `ss`), fastfetch, btop, and smartmontools (`smartctl`). The SSH client is installed; incoming SSH access is not enabled.
+GNOME with GDM provides the desktop and login screen. NetworkManager manages Wi-Fi through GNOME Settings. PipeWire handles audio; GNOME provides keyring, Bluetooth, power settings, and removable-drive integration. Plymouth provides the graphical boot and encrypted-disk password prompt. Printing is disabled. Desktop applications include Vivaldi with `vivaldi-ffmpeg-codecs`, Vesktop (Vencord), Proton Pass, Steam, VSCodium, VLC, Files, Console, Text Editor, an image viewer, a PDF viewer, Archive Manager, Disks, and Passwords and Keys. Vivaldi is the default browser; Firefox is not installed. Dash to Dock and Extension Manager are included. Shared command-line tools include `dig`, `host`, `nslookup`, `mtr`, Ansible, OpenSSH (`ssh`, `scp`, `sftp`, `ssh-keygen`), Git, curl, wget, jq, rsync, traceroute, tcpdump, iproute2 (`ip`, `ss`), fastfetch, btop, smartmontools (`smartctl`), lm_sensors (`sensors`), usbutils (`lsusb`), pciutils (`lspci`), unzip, and ncdu. The SSH client is installed; incoming SSH access is not enabled.
+
+GNOME defaults to the bundled wallpaper, dark appearance, and minimize/maximize/close window buttons. These defaults remain editable by each user in GNOME Settings or dconf.
 
 The configuration uses a recent Linux kernel, Mesa, Intel media support and redistributable firmware. The exact Wi-Fi adapter was not specified; adapters requiring drivers outside the kernel may need additional configuration. Connect the monitor to the B580: the KF CPU has no integrated graphics.
 
@@ -15,13 +17,14 @@ UEFI boot is required. Installation erases the selected whole disk.
 | GPT partition 1 | 2048 MiB FAT32 EFI system partition mounted at `/boot` |
 | GPT partition 2 | Remaining space, password-unlocked LUKS |
 | Inside LUKS | LVM volume group `vg00` |
-| Inside LVM | One logical volume `root`, using all free space, ext4 mounted at `/` |
+| Inside LVM | 200 GiB ext4 logical volume `root`, mounted at `/` |
+| Inside LVM | Ext4 logical volume `home`, using all remaining space, mounted at `/home` |
 
 The 2048 MiB EFI size applies to fresh partitioning. A normal rebuild does not resize an existing `/boot`; do not rerun the destructive installer to apply this change.
 
-The root logical volume is `/dev/vg00/root`. An existing installation using volume group `sekai` must keep its old disk configuration until the actual volume group and boot configuration are migrated together. Applying the `vg00` configuration alone would make the next boot look for a nonexistent root volume.
+The logical volumes are `/dev/vg00/root` and `/dev/vg00/home`. The target disk must have enough usable encrypted space for the 200 GiB root volume. These sizes and the separate home filesystem apply to fresh partitioning; a normal rebuild does not resize or create them.
 
-`/home` and `/nix` live on the root filesystem. The EFI partition is unencrypted. There is no TPM unlocking, keyfile, separate home encryption, disk swap, or hibernation setup. Compressed RAM swap (zram) is enabled.
+`/nix` lives on the root filesystem, while `/home` has its own logical volume inside the same encrypted container. The EFI partition is unencrypted. There is no TPM unlocking, keyfile, disk swap, or hibernation setup. Compressed RAM swap (zram) is enabled.
 
 Disk swap is explicitly disabled, and Bluetooth is enabled and powered on at boot. PipeWire with WirePlumber manages audio, including Bluetooth audio devices paired through GNOME Settings. TPM support is disabled; unlocking the encrypted disk requires your passphrase each time.
 
@@ -96,11 +99,13 @@ For future rebuilds on that device, use `sudo nixos-rebuild switch --flake path:
 | `modules/global/packages.nix` | Global command-line tools |
 | `modules/global/system.nix` | NetworkManager, locale, user, zram, TPM policy |
 | `modules/desktop/gnome.nix` | Optional GNOME/GDM profile, apps, PipeWire, Bluetooth |
+| `modules/desktop/appearance.nix` | Wallpaper, dark appearance, and window-button defaults |
+| `modules/desktop/assets/default-wallpaper.jpg` | Bundled default wallpaper |
 | `modules/desktop/apps.nix` | Shared desktop apps, Vivaldi browser defaults, Steam integration |
 | `modules/desktop/extensions.nix` | GNOME extensions and default enablement |
-| `hosts/sekai/default.nix` | Desktop profile selection, Intel hardware, bootloader, state version |
+| `hosts/sekai/default.nix` | Desktop profile selection, Intel hardware, bootloader, Plymouth, state version |
 | `hosts/sekai/settings.nix` | Disk, login name, locale, keyboard, timezone |
-| `hosts/sekai/disk.nix` | EFI plus LVM inside LUKS with one ext4 root volume |
+| `hosts/sekai/disk.nix` | EFI plus LVM inside LUKS with ext4 root and home volumes |
 | `hosts/sekai/hardware-configuration.nix` | Generated on the target during installation |
 | `install.sh` | Interactive installation of a selected host |
 

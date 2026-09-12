@@ -16,6 +16,11 @@
     fastfetch
     btop
     smartmontools # smartctl
+    lm_sensors # sensors
+    usbutils # lsusb
+    pciutils # lspci
+    unzip
+    ncdu
   ];
 
   # Includes mtr and the permissions needed for unprivileged network probes.
