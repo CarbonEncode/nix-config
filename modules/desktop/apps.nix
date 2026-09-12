@@ -6,7 +6,6 @@
 
   environment.systemPackages = with pkgs; [
     vesktop # Discord desktop client with Vencord included
-    deezer-enhanced # Unofficial Deezer desktop client for Linux
     proton-pass
     (vivaldi.override {
       proprietaryCodecs = true;
